@@ -31,7 +31,7 @@ public class Board {
 	private String content; 
 	
 	@JoinColumn(name = "userId")
-	@ManyToOne(fetch = FetchType.LAZY) 
+	@ManyToOne(fetch = FetchType.EAGER) 
 	// lazy : 지연로딩, eager : 사용하기 전에 미리 땡겨온다.
 	// 어차피 땡겨올게 1건 밖에 없다. 부하가 과하지 않기 때문에 기본 전략이 eager이다. 
 	// 1건이 아니라 여러건을 땡겨와야하면 다 lazy다. 

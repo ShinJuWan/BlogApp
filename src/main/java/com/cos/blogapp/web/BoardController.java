@@ -14,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -33,7 +34,9 @@ public class BoardController {
 		// 컴퍼넌트 스캔을 통해서 IoC 컨테이너에 있는 자료를 가지고 오는 것을 DI
 		// IoC에서 받아올때는 생성자 주입을 받아야한다. 
 	  	// fianl이 붙은 변수는 무조건 초기화를 해줘야한다. <- 문법
-		private final BoardRepository boardRepository;
+	 	// DI 
+		private final BoardRepository boardRepository; 
+		// final + RequiredArgsConstructor를 통해서 값을 가지고 온다. 두가지가 없다면 null이 발생한다.
 		private final HttpSession session;
 		
 		/*
@@ -42,6 +45,26 @@ public class BoardController {
 		 * this.boardRepository = boardRepository; }
 		 */
 
+		//@post는 아래 3가지 all or @get body만!!
+		// 1. 컨트롤러 선정, HTTp Method 선정, 3. 받을 데이터가 있는지!!(body, 쿼리스트링, 패스var)
+		// 쿼리스트링 + 패스var -> db에서 where이 필요할 때!! 혹은 구체적인 요청이 필요할 때!!
+		// 4. db에 접근을 해야하면 model에 접근 or else model에 접근할 필요가 없다. 
+		@GetMapping("/board/{id}")
+		public String detail(@PathVariable int id, Model model) {
+			// select * from board where id = :id 
+			// db에서 가지고온 data의 변수명 Entity
+			
+			// 1. orElse는 값을 찾으면 Board가 리턴, 못찾으면 (괄호안 내용 리턴)
+			//Board boardEntity = boardRepository.findById(id)
+			//	.orElse(new Board());
+			//2 . orElseThrow
+			Board boardEntity = boardRepository.findById(id)
+					.orElseThrow();
+			
+			model.addAttribute("boardEntity", boardEntity);
+			return "board/detail";
+		}
+		
 		// @ResponseBody 파일을 리턴
 		@PostMapping("/board") // http body를 가져감 -> 마임타입 전달 필수
 		public @ResponseBody String save(@Valid BoardSaveReqDto dto, BindingResult bindingResult) {
@@ -50,7 +73,7 @@ public class BoardController {
 			
 			// 인증체크
 			if (principal == null) { // 로그인 안됨
-				return Script.href("loginForm", "잘못된 접근입니다");
+				return Script.href("/loginForm", "잘못된 접근입니다");
 			}
 			
 			if(bindingResult.hasErrors()) {
@@ -61,9 +84,7 @@ public class BoardController {
 				return Script.back(errorMap.toString());
 			}
 			
-
-			
-			boardRepository.save(dto.toEntity(null));
+			boardRepository.save(dto.toEntity(principal));
 			return Script.href("/", "글쓰기 성공");
 		}
 	
@@ -72,6 +93,7 @@ public class BoardController {
 			return "board/saveForm";
 		}
 		
+		// int page = 쿼리스트링!!
 		@GetMapping({"/board"})
 		public String home(Model model, int page) {
 					
