@@ -61,12 +61,7 @@ public class BoardController {
 			//	.orElse(new Board());
 			//2 . orElseThrow
 			Board boardEntity = boardRepository.findById(id)
-					.orElseThrow(new Supplier<MyNotFoundException>() {
-					@Override
-					public MyNotFoundException get() {
-						return new MyNotFoundException("게시글을 찾을 수 없습니다.");
-					}
-					});
+					.orElseThrow(()-> new MyNotFoundException("게시글을 찾을 수 없습니다."));
 			
 			model.addAttribute("boardEntity", boardEntity);
 			return "board/detail";
