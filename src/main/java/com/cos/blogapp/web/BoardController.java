@@ -64,7 +64,7 @@ public class BoardController {
 					.orElseThrow(new Supplier<MyNotFoundException>() {
 					@Override
 					public MyNotFoundException get() {
-						return new MyNotFoundException(id+"를 찾을 수 없습니다.");
+						return new MyNotFoundException("게시글을 찾을 수 없습니다.");
 					}
 					});
 			
