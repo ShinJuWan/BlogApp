@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -29,6 +30,14 @@ public class UserController {
 	
 	private final UserRepository userRepository;
 	private final HttpSession session;	// tomcat이 만들어서 ioc에 제공해준다.
+	
+	@GetMapping("/user/{id}")
+	public String userInfo(@PathVariable int id) {
+		// 정석은 userRepository.findById(id)를 db에서 가져와야함.
+		// 편법은 세션값을 가져올 수도 있다.
+		
+		return "user/updateForm";
+	}
 	
 	@GetMapping("/logout")
 	public String logout() {
