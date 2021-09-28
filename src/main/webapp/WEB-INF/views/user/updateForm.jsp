@@ -42,7 +42,7 @@
 			
 			if(parseResponse.code == 1){
 				alert("업데이트 성공");
-				location.href = "/user/"+id
+				location.href = "/"
 			}else{
 				alert("업데이트 실패 : "+parseResponse.msg);
 			}
