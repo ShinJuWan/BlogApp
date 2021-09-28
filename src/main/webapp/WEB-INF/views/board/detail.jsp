@@ -3,10 +3,35 @@
 <%@ include file="../layout/header.jsp"%>
 
 <div class="container">
-		<a href="#" class="btn btn-warning">수정</a>
-		<form action="#" method="post" style="display:inline-block">
-			<button id="btn-delete" class="btn btn-danger" type="submit">삭제</button>
-		</form>
+		<!-- 내 글이면 (권한이 있으면) 수정과 삭제 버튼 보이게  if사용가능 -->
+		<c:if test="${sessionScope.principal.id == boardEntity.user.id}">
+			<a href="/board/${boardEntity.id}/updateForm" class="btn btn-warning">수정</a>
+			<button class="btn btn-danger" onclick="deleteById(${boardEntity.id})">삭제</button>
+		</c:if>
+		
+		<script>
+			async function deleteById(id){
+				// 1. 비동기 함수 호출 -> 비동기를 잘처리하는 방법??????
+				let response = await fetch("http://localhost:8080/board/"+id, {
+					method: "delete"
+				}); // 약속 - 어음 (10초)
+				
+				// 2.코드
+				// json() 함수는 json처럼 생긴 문자열을 자바스크립트 오브젝트로 변환해준다.
+				let parseResponse = await response.json();
+				console.log(parseResponse); 
+				
+				if(parseResponse.code == 1){
+					alert("삭제 성공");
+					location.href="/";
+				}else{
+					alert(parseResponse.msg);
+					location.href="/";
+				}
+			}
+			
+			
+		</script>
 		
 	<br /><br />
 	<div>

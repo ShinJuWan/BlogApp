@@ -14,17 +14,22 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.cos.blogapp.domain.board.Board;
 import com.cos.blogapp.domain.board.BoardRepository;
 import com.cos.blogapp.domain.user.User;
+import com.cos.blogapp.handler.ex.MyAsyncNotFoundException;
 import com.cos.blogapp.handler.ex.MyNotFoundException;
 import com.cos.blogapp.util.Script;
 import com.cos.blogapp.web.dto.BoardSaveReqDto;
+import com.cos.blogapp.web.dto.CMRespDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -40,6 +45,78 @@ public class BoardController {
 		private final BoardRepository boardRepository; 
 		// final + RequiredArgsConstructor를 통해서 값을 가지고 온다. 두가지가 없다면 null이 발생한다.
 		private final HttpSession session;
+		
+		// @RequestBody -> json 문자열을 자바 오브젝트로 변환해서 받아줌
+		// 바인딩 리절트는 dto 옆에 있어야만 정상적으로 실행된다. 
+		@PutMapping("/board/{id}")
+		public @ResponseBody CMRespDto<String> update(@PathVariable int id, 
+				@Valid @RequestBody BoardSaveReqDto dto, BindingResult bindingResult) {
+			
+			// 유효성 검사, 인증체크		
+			if(bindingResult.hasErrors()) {
+				Map<String, String> errorMap = new HashMap<>(); // hash map은 String key값으로 잡는다.
+				for(FieldError error : bindingResult.getFieldErrors()) {
+					errorMap.put(error.getField(), error.getDefaultMessage());
+				}
+				throw new MyAsyncNotFoundException(errorMap.toString());
+			}
+			
+			// 인증
+			User principal = (User)session.getAttribute("principal");
+			if (principal == null ) { 
+				throw new MyAsyncNotFoundException("인증이 되지 않았습니다.");
+			}
+			
+			// 권한
+			Board boardEntity = boardRepository.findById(id)
+					.orElseThrow(()-> new MyAsyncNotFoundException("해당 게시글을 찾을 수 없습니다."));
+			
+			if(principal.getId() !=boardEntity.getUser().getId()) {
+				throw new MyAsyncNotFoundException("게시글 작성자가 아닙니다.");
+			}
+			
+			Board board = dto.toEntity(principal);
+			board.setId(id); // update의 핵심
+			
+			boardRepository.save(board);
+			
+			return new CMRespDto<>(1, "업데이트성공", null);
+		}
+		
+		// 모델 접근없이 페이지 이동하는 경우 주소는 중요하지 않다. 
+		@GetMapping("/board/{id}/updateForm")
+		public String boardUpdateForm(@PathVariable int id, Model model) {
+			// 게시글 정보를 가지고 가야함. 
+			Board boardEntity = boardRepository.findById(id)
+					.orElseThrow(()-> new MyNotFoundException(id+"번호의 게시글을 찾을 수 없습니다."));
+			
+			model.addAttribute("boardEntity", boardEntity);
+			
+			return "board/updateForm";
+		}
+		
+		// API(AJAX) 요청
+		@DeleteMapping("/board/{id}")
+		public @ResponseBody CMRespDto<String> deleteById(@PathVariable int id) {
+			
+			// 인증이 된 사람만 함수 접근 가능!!(로그인 된 사람)
+			User principal = (User)session.getAttribute("principal");
+			if (principal == null ) { 
+				throw new MyAsyncNotFoundException("인증이 되지 않았습니다.");
+			}
+			// 권한이 있는 사람만 함수 접근 가능 (principal.id=={id})
+			Board boardEntity = boardRepository.findById(id)
+					.orElseThrow(() -> new MyAsyncNotFoundException("해당글을 찾을 수 없습니다."));
+			
+			try {
+				boardRepository.deleteById(id); // 오류 발생?? (id가 없으면?)				
+			} catch (Exception e) {
+				throw new MyAsyncNotFoundException(id+"를 찾을 수 없어서 삭제할 수 없습니다.");
+			}
+			
+			return new CMRespDto<String>(1, "성공", null); // @ResponseBody 데이터 리턴!! String = text/plain
+		}
+
 		
 		/*
 		 * @RequiredArgsConstructor을 통해서 이 초기화를 대신해준다.
