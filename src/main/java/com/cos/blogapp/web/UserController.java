@@ -17,130 +17,114 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.cos.blogapp.domain.user.User;
-import com.cos.blogapp.domain.user.UserRepository;
 import com.cos.blogapp.handler.ex.MyAsyncNotFoundException;
-import com.cos.blogapp.util.MyAlgorithm;
-import com.cos.blogapp.util.SHA;
+import com.cos.blogapp.service.UserService;
 import com.cos.blogapp.util.Script;
 import com.cos.blogapp.web.dto.CMRespDto;
 import com.cos.blogapp.web.dto.JoinReqDto;
 import com.cos.blogapp.web.dto.LoginReqDto;
-import com.cos.blogapp.web.dto.UserUpdateReqDto;
+import com.cos.blogapp.web.dto.UserUpdateDto;
 
 import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor // final이 붙은 필드에 대한 생성자가 만들어진다.
-@Controller // 컴퍼넌트 스캔 (스프링) ioc
+@RequiredArgsConstructor
+@Controller
 public class UserController {
-	
-	private final UserRepository userRepository;
-	private final HttpSession session;	// tomcat이 만들어서 ioc에 제공해준다.
-	
+
+	private final UserService userService;
+	private final HttpSession session;
+
 	@PutMapping("/user/{id}")
-	public @ResponseBody CMRespDto<String> update(@PathVariable int id, @Valid @RequestBody UserUpdateReqDto dto, BindingResult bindingResult) {
+	public @ResponseBody CMRespDto<String> update(@PathVariable int id, @Valid @RequestBody UserUpdateDto dto,
+			BindingResult bindingResult) {
 		// 유효성
-		if(bindingResult.hasErrors()) {
-			Map<String, String> errorMap = new HashMap<>(); // hash map은 String key값으로 잡는다.
-			for(FieldError error : bindingResult.getFieldErrors()) {
+		if (bindingResult.hasErrors()) {
+			Map<String, String> errorMap = new HashMap<>();
+			for (FieldError error : bindingResult.getFieldErrors()) {
 				errorMap.put(error.getField(), error.getDefaultMessage());
 			}
 			throw new MyAsyncNotFoundException(errorMap.toString());
 		}
+
 		// 인증
-		User principal = (User)session.getAttribute("principal");
-		if (principal == null ) { 
+		User principal = (User) session.getAttribute("principal");
+		if (principal == null) { // 로그인 안됨
 			throw new MyAsyncNotFoundException("인증이 되지 않았습니다.");
 		}
+
 		// 권한
-		if(principal.getId() !=id) {
+		if (principal.getId() != id) {
 			throw new MyAsyncNotFoundException("회원정보를 수정할 권한이 없습니다.");
 		}
-		// 핵심로직
+		
+		userService.회원수정(principal, dto);
 		principal.setEmail(dto.getEmail());
 		session.setAttribute("principal", principal); // 세션 값 변경
-		
-		userRepository.save(principal);
-		
+
 		return new CMRespDto<>(1, "성공", null);
 	}
-	
+
 	@GetMapping("/user/{id}")
 	public String userInfo(@PathVariable int id) {
-		// 정석은 userRepository.findById(id)를 db에서 가져와야함.
+		// 기본은 userRepository.findById(id) 디비에서 가져와야 함.
 		// 편법은 세션값을 가져올 수도 있다.
-		
+
 		return "user/updateForm";
 	}
-	
+
 	@GetMapping("/logout")
 	public String logout() {
-		session.invalidate(); // session 무효화. session에 있는 값을 비운다. 
-		// return "board/list"; // 게시글 목록 화면에 데이터가 있을까? 
-		return "redirect:/";
+		session.invalidate(); // 세션 무효화 (jsessionId에 있는 값을 비우는 것)
+		return "redirect:/"; // 게시글 목록 화면에 데이터가 있을까요?
 	}
-	
-	// https://localhost:8080/login -> login.jsp
-	// views/user/login.jsp
-	// prefix: /WEB-INF/views/	( 찾으려는 내용 )	suffix: .jsp  
-	// ViewResolver
+
 	@GetMapping("/loginForm")
 	public String loginForm() {
 		return "user/loginForm";
 	}
-	
+
 	@GetMapping("/joinForm")
 	public String joinForm() {
 		return "user/joinForm";
 	}
-	
+
 	@PostMapping("/login")
 	public @ResponseBody String login(@Valid LoginReqDto dto, BindingResult bindingResult) {
 
-		// System.out.println("에러사이즈:" + bindingResult.getFieldErrors().size()); // Array list는 숫자로 카운트!
-		
-		if(bindingResult.hasErrors()) {
-			Map<String, String> errorMap = new HashMap<>(); // hash map은 String key값으로 잡는다.
-			for(FieldError error : bindingResult.getFieldErrors()) {
+		if (bindingResult.hasErrors()) {
+			Map<String, String> errorMap = new HashMap<>();
+			for (FieldError error : bindingResult.getFieldErrors()) {
 				errorMap.put(error.getField(), error.getDefaultMessage());
 			}
 			return Script.back(errorMap.toString());
-		}
-		
-		// 로그인 실패
-		User userEntity = userRepository.mLogin(dto.getUsername(), SHA.encrypt(dto.getPassword(), MyAlgorithm.SHA256));
-		
-		if(userEntity == null ) { // username, password 잘못기입
-			return Script.back("아이디 혹은 비밀번호를 잘못 입력하였습니다.");
-		} else {
-			session.setAttribute("principal", userEntity); //principal 접근, 인증 주체 = 인증된 오브젝트
-			return Script.href("/", "로그인 성공");
 		}
 
+		User userEntity =  userService.로그인(dto);
+
+		if (userEntity == null) { // username, password 잘못 기입
+			return Script.back("아이디 혹은 비밀번호를 잘못 입력하였습니다.");
+		} else {
+			// 세션 날라가는 조건 : 1. session.invalidate(), 2. 브라우저를 닫으면 날라감
+			session.setAttribute("principal", userEntity);
+			return Script.href("/", "로그인 성공");
+		}
 	}
-	
+
 	@PostMapping("/join")
 	public @ResponseBody String join(@Valid JoinReqDto dto, BindingResult bindingResult) { // username=love&password=1234&email=love@nate.com
-		
-		// 1. 유효성 검사 실패 -> 자바스크립트 응답(alert창, history.back())
-		// 2. 정상 -> 로그인 페이지
-		
-		// System.out.println("에러사이즈:" + bindingResult.getFieldErrors().size()); // Array list는 숫자로 카운트!
-		
-		if(bindingResult.hasErrors()) {
-			Map<String, String> errorMap = new HashMap<>(); // hash map은 String key값으로 잡는다.
-			for(FieldError error : bindingResult.getFieldErrors()) {
+
+		if (bindingResult.hasErrors()) {
+			Map<String, String> errorMap = new HashMap<>();
+			for (FieldError error : bindingResult.getFieldErrors()) {
 				errorMap.put(error.getField(), error.getDefaultMessage());
-				System.out.println("필드:" + error.getField());
-				System.out.println("메세지:" + error.getDefaultMessage());
 			}
+
 			return Script.back(errorMap.toString());
 		}
+
+		userService.회원가입(dto);
 		
-		String encPassword =  SHA.encrypt(dto.getPassword(), MyAlgorithm.SHA256);
-		
-		dto.setPassword(encPassword);
-		userRepository.save(dto.toEntity());
 		return Script.href("/loginForm"); // 리다이렉션 (300)
 	}
-	
+
 }
