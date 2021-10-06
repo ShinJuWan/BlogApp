@@ -58,6 +58,8 @@ public class UserController {
 		}
 		
 		userService.회원수정(principal, dto);
+		
+		// 세션 동기화
 		principal.setEmail(dto.getEmail());
 		session.setAttribute("principal", principal); // 세션 값 변경
 

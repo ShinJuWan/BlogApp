@@ -91,8 +91,9 @@ public class BoardController {
 
 	@GetMapping("/board/{id}")
 	public String detail(@PathVariable int id, Model model) {
+		// Board 객체에 존재하는 것 (Board(0), User(0), List<comment>(x))
 		model.addAttribute("boardEntity", boardService.게시글상세보기(id));
-		return "board/detail";
+		return "board/detail"; // ViewResolver
 	}
 
 	@PostMapping("/board")
