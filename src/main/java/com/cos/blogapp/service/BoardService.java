@@ -27,21 +27,6 @@ public class BoardService {
 
 	// 생성자 주입 (DI)
 	private final BoardRepository boardRepository;
-	private final CommentRepository commentRepository;
-
-	@Transactional(rollbackFor = MyNotFoundException.class)
-	public void 댓글등록(int boardId, CommentSaveReqDto dto, User principal) {
-
-		Board boardEntity = boardRepository.findById(boardId)
-				.orElseThrow(() -> new MyNotFoundException("해당 게시글을 찾을 수 없습니다."));
-
-		Comment comment = new Comment();
-		comment.setContent(dto.getContent());
-		comment.setUser(principal);
-		comment.setBoard(boardEntity);
-
-		commentRepository.save(comment);
-	} // 트랜잭션 종료
 
 	@Transactional(rollbackFor = MyAsyncNotFoundException.class)
 	public void 게시글수정(int id, User principal, BoardSaveReqDto dto) {

@@ -6,9 +6,6 @@ import java.util.Map;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,13 +18,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.cos.blogapp.domain.board.Board;
-import com.cos.blogapp.domain.board.BoardRepository;
-import com.cos.blogapp.domain.comment.CommentRepository;
 import com.cos.blogapp.domain.user.User;
 import com.cos.blogapp.handler.ex.MyAsyncNotFoundException;
 import com.cos.blogapp.handler.ex.MyNotFoundException;
 import com.cos.blogapp.service.BoardService;
+import com.cos.blogapp.service.CommentService;
 import com.cos.blogapp.util.Script;
 import com.cos.blogapp.web.dto.BoardSaveReqDto;
 import com.cos.blogapp.web.dto.CMRespDto;
@@ -41,12 +36,18 @@ public class BoardController {
 
 	// DI
 	private final BoardService boardService;
+	private final CommentService commentService;
 	private final HttpSession session;
 
 	@PostMapping("/board/{boardId}/comment")
 	public String commentSave(@PathVariable int boardId, CommentSaveReqDto dto) {
 		User principal = (User) session.getAttribute("principal");
-		boardService.댓글등록(boardId, dto, principal);
+		
+		if (principal == null) {
+			throw new MyNotFoundException("인증이 되지 않았습니다.");
+		}
+		
+		commentService.댓글등록(boardId, dto, principal);
 		return "redirect:/board/" + boardId;
 	}
 
