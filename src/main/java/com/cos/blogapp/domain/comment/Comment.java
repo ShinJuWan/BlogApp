@@ -10,6 +10,7 @@ import javax.persistence.ManyToOne;
 
 import com.cos.blogapp.domain.board.Board;
 import com.cos.blogapp.domain.user.User;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,16 +24,16 @@ public class Comment {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id; //PK (자동증가 번호)
-
+	
 	@Column(nullable = false)
 	private String content;
-
+	
 	@JoinColumn(name = "userId")
 	@ManyToOne
 	private User user;
 
 	@JoinColumn(name = "boardId")
 	@ManyToOne
-	private Board board;
-
+	private Board board; // 2
+	
 }

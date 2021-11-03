@@ -30,7 +30,7 @@
 	
 			
 			// 3초
-			let response = await fetch("http://localhost:8080/board/"+id, {
+			let response = await fetch("http://localhost:8080/api/user/"+id, {
 				method: "put",
 				body: JSON.stringify(userUpdateDto),
 				headers: {

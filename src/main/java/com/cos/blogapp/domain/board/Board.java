@@ -44,7 +44,7 @@ public class Board {
 	
 	// mappedBy 에는 FK의 주인의 변수이름을 추가한다. 
 	@JsonIgnoreProperties({"board"}) // comments 객체 내부의 필드를 제외시키는 법  
-	@OneToMany(mappedBy = "board",fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "board", fetch = FetchType.LAZY)
 	@OrderBy("id desc")
 	private List<Comment> comments;
 	

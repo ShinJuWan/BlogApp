@@ -34,7 +34,7 @@ public class UserController {
 	private final UserService userService;
 	private final HttpSession session;
 
-	@PutMapping("/user/{id}")
+	@PutMapping("/api/user/{id}")
 	public @ResponseBody CMRespDto<String> update(@PathVariable int id, @Valid @RequestBody UserUpdateDto dto,
 			BindingResult bindingResult) {
 		// 유효성
@@ -48,9 +48,6 @@ public class UserController {
 
 		// 인증
 		User principal = (User) session.getAttribute("principal");
-		if (principal == null) { // 로그인 안됨
-			throw new MyAsyncNotFoundException("인증이 되지 않았습니다.");
-		}
 
 		// 권한
 		if (principal.getId() != id) {
@@ -59,14 +56,14 @@ public class UserController {
 		
 		userService.회원수정(principal, dto);
 		
-		// 세션 동기화
+		// 세션 동기화 해주는 부분
 		principal.setEmail(dto.getEmail());
 		session.setAttribute("principal", principal); // 세션 값 변경
 
 		return new CMRespDto<>(1, "성공", null);
 	}
 
-	@GetMapping("/user/{id}")
+	@GetMapping("/api/user/{id}")
 	public String userInfo(@PathVariable int id) {
 		// 기본은 userRepository.findById(id) 디비에서 가져와야 함.
 		// 편법은 세션값을 가져올 수도 있다.
